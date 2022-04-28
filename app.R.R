@@ -11,7 +11,7 @@ load('d_poly.RData')
 load('dist_list.RData')
 load('dist_list_name.RData')
 load('data_CM.RData')
-load('d_pred_acc.RData')
+# load('d_pred_acc.RData')
 
 # functions
 m_f <- function(x) mean(x, na.rm = TRUE)
@@ -130,7 +130,7 @@ ui <- fluidPage(
                          max = 20, value = 3, step = 1, ticks = FALSE),
              
     hr(),
-    splitLayout(plotOutput('p_dist_AS', width = '250px', height = '250px'),
+    splitLayout(plotOutput('p_dist_AS', width = '210px', height = '250px'),
                 plotOutput('pie_AS', width = '350px', height = '250px'), cellWidths = c("40%", "60%"))
              
     
@@ -446,7 +446,7 @@ server <- function(input, output) {
     p_dist_AS <- ggplot(d_poly, aes(x = long, y = lat, group = dist)) + 
       geom_polygon(colour='black', aes(fill=param, group = dist)) +
       labs(x = 'lon') +
-      ggtitle('Selected districts')
+      ggtitle('Selected districts') + theme(legend.position = 'none')
     
     # Pie chart
     bp <- ggplot(sh_d, aes(x="", y=c_per, fill=crop)) + 
@@ -515,9 +515,7 @@ server <- function(input, output) {
       mutate(exp_inc = av_yld * av_price/100) %>%
       select(dist_code, dist_name, av_yld, exp_inc) %>% rename(exp_yld = av_yld)
 
-    d <- left_join(x = d, d_pred, "dist_code") %>%
-      select(dist_code, dist_name.x, exp_yld, exp_inc) %>%
-      rename(dist_name = dist_name.x)
+    # d <- d %>% select(dist_code, dist_name, exp_yld, exp_inc)
     
     return(d)
     
@@ -564,9 +562,7 @@ server <- function(input, output) {
       mutate(exp_inc = av_yld * av_price/100) %>%
       select(dist_code, dist_name, av_yld, exp_inc) %>% rename(exp_yld = av_yld)
 
-    d <- left_join(x = d, d_pred, "dist_code") %>%
-      select(dist_code, dist_name.x, exp_yld, exp_inc) %>%
-      rename(dist_name = dist_name.x)
+    # d <- d %>% select(dist_code, dist_name, exp_yld, exp_inc)
 
     return(d)
 
@@ -577,13 +573,9 @@ server <- function(input, output) {
 
     r_tab <- inner_join(x = y_p_opt1(), y = y_p_opt2(), "dist_code")
 
-  # get the prediction accuracy
-  d_p <- d_pred %>% filter(dist_code %in% sel_dist_CM()) %>%
-    select(dist_name, dist_code, glb_pred_acc)
-
   # combine and calculate the difference in yield and expected income
-  r_tab <- left_join(r_tab, d_p, "dist_code") %>%
-    select(dist_code, dist_name, glb_pred_acc, exp_yld.x, exp_yld.y, exp_inc.x, exp_inc.y) %>%
+  r_tab <- r_tab %>%
+    select(dist_code, dist_name.x, exp_yld.x, exp_yld.y, exp_inc.x, exp_inc.y) %>%
     mutate(yld_diff = exp_yld.y - exp_yld.x, inc_diff = exp_inc.y - exp_inc.x) %>%
     relocate(yld_diff, .after = exp_yld.y) %>% relocate(inc_diff, .after = exp_inc.y)
 
@@ -597,9 +589,9 @@ server <- function(input, output) {
     state <- PM_prod %>% filter(dist_code %in% res_tab_CM()$dist_code) %>%
       group_by(dist_code) %>% summarise(state = unique(state_name))
     res_tab <- left_join(x = res_tab_CM(), y = state, "dist_code") %>% arrange(state) %>%
-      relocate(state, .before = dist_name)
+      relocate(state, .before = dist_name.x)
     res_tab <- res_tab[, -1]
-    colnames(res_tab) <- c('state', 'district', 'pred. accuracy', 'exp. yield opt1 [kg/ha]',
+    colnames(res_tab) <- c('state', 'district', 'exp. yield opt1 [kg/ha]',
                            'exp. yield opt2 [kg/ha]', 'yield diff (o2-o1) [kg/ha]',
                            'exp. inc. opt1 [INR]', 'exp. inc. opt2 [INR]', 
                            'inc. diff (o2-o1) [INR]')
